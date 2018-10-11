@@ -15,7 +15,16 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-find_package (GeographicLib 1.34 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
+
+set(wiringPi_include "usr/local/include")
+
+include_directories(
+${catkin_INCLUDE_DIRS}
+${wiringPi_include}
+)
+
+LINK_DIRECTORIES("usr/local/lib")
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -126,7 +135,7 @@ include
 )
 
 add_executable(treasure_hunting src/mavrosCommandMain.cpp src/mavrosCommand.cpp)
-target_link_libraries(treasure_hunting ${catkin_LIBRARIES})
+target_link_libraries(treasure_hunting ${catkin_LIBRARIES} wiringPi)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
