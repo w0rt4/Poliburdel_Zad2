@@ -1,11 +1,23 @@
-#include <iostream>
 #include "ros/ros.h"
+#include <iostream>
 #include <fstream>
 #include <math.h>
 #include "mavrosCommand.hpp"
 #include <nlohmann/json.hpp>
+//#include <wiringPi.h>
+//#include <wiringSerial.h>
+//#include "serial_port.h"
+#include <thread>
+#include <chrono> 
+#include <SerialPort.h>
+#include <SerialStream.h>
+#include <unistd.h>
+#include <cstring>
+#include <cstdlib>
 
 using namespace std;
+using namespace LibSerial;
+
 
 double latitude[65];
 double longitude[65];
@@ -58,40 +70,137 @@ bool getCordinates(mavrosCommand command);
 
 int main(int argc, char* argv[]){
 
-	ros::init(argc, argv, "beginner_tutorials");
+	ros::init(argc, argv, "treasure_hunting");
 	mavrosCommand command;
 	
 	ros::Rate loop_rate(frequency);
 	sleep(1);
 	
-	
-	
-
 	if(getCordinates(command) == false){
-		cout<<"FILE mission.txt IS DAMAGED!"<<endl;
+		cout<<"Mission file is damaged."<<endl;
 		return 0;
 	}
-	/*
-	for(i=0; i<ile; i++){
-		cout<<fixed << setprecision(7) << latitude[i] <<", ";
-		cout<<fixed << setprecision(7) << longitude[i] <<endl;
-	}
-	*/
+	
 	i=0;
 	
-	while (ros::ok()) {
+	char readedChar;
+	int fileDescriptor;
+	size_t ms_timeout = 5000;
+    string readData;
+	SerialPort serial_port("/dev/ttyUSB0");
+	
+	try
+	{
+		serial_port.Open(SerialPort::BaudRate::BAUD_115200,
+						 SerialPort::CharacterSize::CHAR_SIZE_8,
+						 SerialPort::Parity::PARITY_NONE,
+						 SerialPort::StopBits::STOP_BITS_1,
+						 SerialPort::FlowControl::FLOW_CONTROL_NONE);
+	}
+	catch(SerialPort::AlreadyOpen)
+	{
+		cout << "Error during opening serial port to Arduino. Port is already open." << endl;
+		return 1;
+	}
+	catch(SerialPort::OpenFailed)
+	{
+		cout << "Error during opening serial port to Arduino." << endl;
+		return 1;
+	}
+	catch(SerialPort::UnsupportedBaudRate)
+	{
+		cout << "Error during opening serial port to Arduino. Unsuported baud rate." << endl;
+		return 1;
+	}
+	catch(...)
+	{
+		cout << "Unknown error during opening serial port to Arduino." << endl;
+		return 1;
+	}
+	
+	cout<<"Sending initial command to metal detector." <<endl;				 
+    serial_port.WriteByte('e');
+    
+    // kalibracja wykrywacza
+    this_thread::sleep_for (chrono::seconds(10));
+    cout<<"Sending reset command to metal detector." <<endl;		
+    serial_port.WriteByte('a');
+    
+    // uruchomienie wykrywacza
+    this_thread::sleep_for (chrono::seconds(1));
+    cout<<"Sending turn on command to metal detector." <<endl;		
+    serial_port.WriteByte('e');
+    
+    cout<<"Serial Port Open."<<endl;
+	while (ros::ok()) 
+	{
 		
-		if(loopCounter >= 10){
-			mission(command);
-			loopCounter = 0;
+		/*
+		uint8_t	cp;
+		int result = serialPort._read_port(cp);
+		if (result > 0)
+		{
+			if ((char)result == '\n')
+			{
+			}
+			else
+			{
+				cout << cp;
+			}
+		}
+
+		// Couldn't read from port
+		else
+		{
+			cout << "ERROR: Could not read from fd %d\n"<<endl;
+		}
+		this_thread::sleep_for (chrono::seconds(1));
+		*/
+		
+		while(serial_port.IsDataAvailable()) 
+		{
+			try
+			{
+				readData = serial_port.ReadLine(ms_timeout);
+				cout<<readData<<endl;
+				
+				int value = stoi(readData);
+				if(value < 50)
+				{
+					serial_port.WriteByte('a');
+					this_thread::sleep_for (chrono::seconds(1));
+				}
+				
+			}
+			catch(...)
+			{
+				cout<<"Error when trying to read:" <<endl;
+			}
 		}
 		
+		if(loopCounter >= 10){
+			//mission(command);
+			loopCounter = 0;
+		}		
+		
 		loopCounter++;
-		loopCounter1++;
+		//loopCounter1++;
 		ros::spinOnce();
 		loop_rate.sleep();
 	}	
 	
+	try
+	{
+		cout<<"Turning off metal detector." <<endl;
+		
+		serial_port.WriteByte('f');
+	}
+	catch(...)
+	{
+		cout<<"Error when trying to turn off metal detector." <<endl;
+	}
+	
+	serial_port.Close();
 	return 0;
 }
 
@@ -210,7 +319,7 @@ void landHome(mavrosCommand command){
 }
 
 bool getCordinates(mavrosCommand command){
-	ifstream theFile("/home/w0rt4/drony/catkin_ws/src/mission2/mission.json");
+	ifstream theFile("/home/odroid/catkin_ws/src/treasure_hunting/mission.json");
 	json missionSettings = json::parse(theFile);
 	theFile.close();
 	

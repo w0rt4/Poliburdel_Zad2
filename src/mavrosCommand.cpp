@@ -31,18 +31,9 @@ void mavrosCommand::init(){
 	_stateSub = _nh.subscribe("/mavros/state", 100, &mavrosCommand::stateCb, this);
 	_globalPositionRelAltitudeSub = _nh.subscribe("/mavros/global_position/rel_alt", 100, &mavrosCommand::globalPostionRelAltitudeCb, this);
 	_timeReferenceSub = _nh.subscribe("/mavros/time_reference", 100, &mavrosCommand::timeReferenceCb, this);
-	_qrMessageSub = _nh.subscribe("/visp_auto_tracker/code_message", 100, &mavrosCommand::qrMessageCb, this);
-	_qrPositionSub = _nh.subscribe("/visp_auto_tracker/object_position", 100, &mavrosCommand::qrPositionCb, this);
 }
 
-void mavrosCommand::qrPositionCb(geometry_msgs::PoseStamped::ConstPtr msg) {
-	_qrPositionX = msg->pose.position.x;
-	_qrPositionY = msg->pose.position.y;
-}
 
-void mavrosCommand::qrMessageCb(std_msgs::String::ConstPtr msg) {
-	_qrMessage = msg->data;
-}
 
 void mavrosCommand::adsbVehicleCb(mavros_msgs::ADSBVehicle::ConstPtr msg) {
 	
@@ -84,8 +75,8 @@ void mavrosCommand::takeOff(double altitude){
 	mavros_msgs::CommandTOL srv_takeOff;
 	srv_takeOff.request.min_pitch = 0.0;
 	srv_takeOff.request.yaw = 0.0;
-	srv_takeOff.request.latitude = 0.0;//-35.363265;
-	srv_takeOff.request.longitude = 0.0;//149.165241;
+	srv_takeOff.request.latitude = 0.0;
+	srv_takeOff.request.longitude = 0.0;
 	srv_takeOff.request.altitude = altitude;
 	_clientTakeOff.call(srv_takeOff);
 	if (srv_takeOff.response.success) {
@@ -99,8 +90,8 @@ void mavrosCommand::land(){
 	mavros_msgs::CommandTOL srv_land;
 	srv_land.request.min_pitch = 0.0;
 	srv_land.request.yaw = 0.0;
-	srv_land.request.latitude = 0.0;//-35.363265;
-	srv_land.request.longitude = 0.0;//149.165241;
+	srv_land.request.latitude = 0.0;
+	srv_land.request.longitude = 0.0;
 	srv_land.request.altitude = 0.0;
 	_clientLand.call(srv_land);
 	if (srv_land.response.success) {
@@ -114,8 +105,6 @@ void mavrosCommand::picture(){
 	std_srvs::Empty srv_picture;
 	_clientPicture.call(srv_picture);
 	cout<<"PICTURE CAPTURED"<<endl;
-	//if (srv_picture.response.success)cout<<"PICTURE CAPTURED"<<endl;
-	//else cout<<"PICTURE FAIL"<<endl;
 }
 
 void mavrosCommand::servo(double width){//width 1000-2000
@@ -249,15 +238,7 @@ bool mavrosCommand::getGuided(){
 string mavrosCommand::getState(){
 	return _state;
 }
-string mavrosCommand::getQrValue(){
-	return _qrMessage;
-}
-double mavrosCommand::getQrPositionX(){
-	return _qrPositionX;
-}
-double mavrosCommand::getQrPositionY(){
-	return _qrPositionY;
-}
+
 
 //others
 double mavrosCommand::toRad(double degree){

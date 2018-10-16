@@ -2,22 +2,28 @@
 #define MAVROS_COMMAND_HPP
 
 #include "ros/ros.h"
+
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "mavros_msgs/CommandBool.h"
 #include "mavros_msgs/CommandTOL.h"
 #include "mavros_msgs/CommandLong.h"
 #include "mavros_msgs/SetMode.h"
-#include <iostream>
 #include "mavros_msgs/ADSBVehicle.h"
+#include "mavros_msgs/State.h"
+
+#include "sensor_msgs/TimeReference.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Float64.h"
-#include "sensor_msgs/TimeReference.h"
-#include "mavros_msgs/State.h"
-#include <string>
 #include "std_msgs/String.h"
-#include "geometry_msgs/PoseStamped.h"
+
 #include "std_srvs/Empty.h"
+
+#include "geometry_msgs/PoseStamped.h"
+
+#include <iostream>
+#include <string>
+
 
 using namespace std;
 
@@ -59,9 +65,6 @@ public:
 	bool getArmed();
 	bool getGuided();
 	string getState();
-	string getQrValue();
-	double getQrPositionX();
-	double getQrPositionY();
 	
 	//others
 	double toRad(double degree);
@@ -93,8 +96,6 @@ private:
 	void stateCb(mavros_msgs::State::ConstPtr msg);
 	void globalPostionRelAltitudeCb(std_msgs::Float64::ConstPtr msg);
 	void timeReferenceCb(sensor_msgs::TimeReference::ConstPtr msg);
-	void qrMessageCb(std_msgs::String::ConstPtr msg);
-	void qrPositionCb(geometry_msgs::PoseStamped::ConstPtr msg);
 		
 	//Subscribers
 	ros::Subscriber _adsbVehicleSub;
@@ -103,8 +104,6 @@ private:
 	ros::Subscriber _stateSub;
 	ros::Subscriber _globalPositionRelAltitudeSub;
 	ros::Subscriber _timeReferenceSub;
-	ros::Subscriber _qrMessageSub;
-	ros::Subscriber _qrPositionSub;
 	
 	//adsb/vehicle
 	int _adsbICAO;
@@ -127,11 +126,6 @@ private:
 	//timeReference
 	time_t _time;
 	
-	//qrMessage
-	string _qrMessage;
-	
-	//qrPosition
-	double _qrPositionX, _qrPositionY;
 };
 
 
