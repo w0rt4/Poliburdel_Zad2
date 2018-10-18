@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(treasure_hunting)
 
-
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -17,11 +16,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 find_package(OpenCV)
 
-set(wiringPi_include "usr/local/include")
-
 include_directories(
 ${catkin_INCLUDE_DIRS}
-${wiringPi_include}
 ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -49,5 +45,5 @@ include
 )
 
 add_executable(treasure_hunting src/mavrosCommandMain.cpp src/mavrosCommand.cpp)
-target_link_libraries(treasure_hunting ${catkin_LIBRARIES} wiringPi ${OpenCV_LIBS} serial)
+target_link_libraries(treasure_hunting ${catkin_LIBRARIES} ${OpenCV_LIBS} serial)
 

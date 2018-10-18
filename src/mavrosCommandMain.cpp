@@ -4,9 +4,6 @@
 #include <math.h>
 #include "mavrosCommand.hpp"
 #include <nlohmann/json.hpp>
-//#include <wiringPi.h>
-//#include <wiringSerial.h>
-//#include "serial_port.h"
 #include <thread>
 #include <chrono> 
 #include <SerialPort.h>
@@ -17,7 +14,6 @@
 
 using namespace std;
 using namespace LibSerial;
-
 
 double latitude[65];
 double longitude[65];
@@ -133,30 +129,7 @@ int main(int argc, char* argv[]){
     
     cout<<"Serial Port Open."<<endl;
 	while (ros::ok()) 
-	{
-		
-		/*
-		uint8_t	cp;
-		int result = serialPort._read_port(cp);
-		if (result > 0)
-		{
-			if ((char)result == '\n')
-			{
-			}
-			else
-			{
-				cout << cp;
-			}
-		}
-
-		// Couldn't read from port
-		else
-		{
-			cout << "ERROR: Could not read from fd %d\n"<<endl;
-		}
-		this_thread::sleep_for (chrono::seconds(1));
-		*/
-		
+	{		
 		while(serial_port.IsDataAvailable()) 
 		{
 			try
@@ -179,7 +152,7 @@ int main(int argc, char* argv[]){
 		}
 		
 		if(loopCounter >= 10){
-			//mission(command);
+			mission(command);
 			loopCounter = 0;
 		}		
 		
@@ -319,7 +292,7 @@ void landHome(mavrosCommand command){
 }
 
 bool getCordinates(mavrosCommand command){
-	ifstream theFile("/home/odroid/catkin_ws/src/treasure_hunting/mission.json");
+	ifstream theFile("/home/maciej/catkin_ws/src/Poliburdel_Zad2/mission.json");
 	json missionSettings = json::parse(theFile);
 	theFile.close();
 	
