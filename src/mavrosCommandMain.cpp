@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <cstring>
 #include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pwd.h>
 
 using namespace std;
 using namespace LibSerial;
@@ -64,6 +67,14 @@ void flyHome(mavrosCommand command);
 void landHome(mavrosCommand command);
 bool getCordinates(mavrosCommand command);
 
+string get_username() {
+    struct passwd *pwd = getpwuid(getuid());
+    if (pwd)
+        return pwd->pw_name;
+    else
+        return "(?)";
+}
+
 int main(int argc, char* argv[]){
 
 	ros::init(argc, argv, "treasure_hunting");
@@ -77,6 +88,7 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 	
+
 	i=0;
 	
 	char readedChar;
@@ -84,6 +96,7 @@ int main(int argc, char* argv[]){
 	size_t ms_timeout = 5000;
     string readData;
 	SerialPort serial_port("/dev/ttyUSB0");
+
 	
 	try
 	{
@@ -292,7 +305,13 @@ void landHome(mavrosCommand command){
 }
 
 bool getCordinates(mavrosCommand command){
-	ifstream theFile("/home/maciej/catkin_ws/src/Poliburdel_Zad2/mission.json");
+	string name = get_username();
+	if (name == "(?)") 
+	{
+		name = "odroid";
+	}
+	
+	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad2/mission.json");
 	json missionSettings = json::parse(theFile);
 	theFile.close();
 	
