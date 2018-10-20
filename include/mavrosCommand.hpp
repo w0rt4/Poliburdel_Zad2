@@ -11,21 +11,18 @@
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/ADSBVehicle.h"
 #include "mavros_msgs/State.h"
-
 #include "sensor_msgs/TimeReference.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/String.h"
 
-#include "std_srvs/Empty.h"
-
-#include "geometry_msgs/PoseStamped.h"
-
 #include <iostream>
-#include <string>
-
+#include <string.h>
+#include <pwd.h>
 
 using namespace std;
+
+string get_username();
 
 class mavrosCommand {
 public:
@@ -40,7 +37,6 @@ public:
 	void arm();
 	void takeOff(double altitude);
 	void servo(double width);
-	void picture();
 	
 	//publishers
 	void flyTo(double latitude, double longitude, double altitude);
@@ -82,7 +78,6 @@ private:
 	ros::ServiceClient _clientGuided;
 	ros::ServiceClient _clientLand;
 	ros::ServiceClient _clientServo;
-	ros::ServiceClient _clientPicture;
 	
 	ros::Publisher _pub_mav;
 	ros::Publisher _pub_mavPositionTarget;

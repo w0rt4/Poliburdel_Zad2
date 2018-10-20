@@ -10,6 +10,14 @@ mavrosCommand::mavrosCommand(){
 	init();
 }
 
+string get_username() {
+    struct passwd *pwd = getpwuid(getuid());
+    if (pwd)
+        return pwd->pw_name;
+    else
+        return "odroid";
+}
+
 mavrosCommand::~mavrosCommand(){
 }
 
@@ -19,12 +27,10 @@ void mavrosCommand::init(){
 	_clientGuided = _nh.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
 	_clientLand = _nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
 	_clientServo = _nh.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command");
-	_clientPicture = _nh.serviceClient<std_srvs::Empty>("/image_saver/save");
 	
 	_pub_mav = _nh.advertise<mavros_msgs::GlobalPositionTarget>("/mavros/setpoint_raw/global",100);
 	_pub_mavPositionTarget = _nh.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local",100);
 	
-	/////
 	_compassHeadingSub = _nh.subscribe("/mavros/global_position/compass_hdg", 100, &mavrosCommand::compassHeadingCb, this);
 	_adsbVehicleSub = _nh.subscribe("/mavros/adsb/vehicle", 100, &mavrosCommand::adsbVehicleCb, this);
 	_globalPositionGlobalSub = _nh.subscribe("/mavros/global_position/global", 100, &mavrosCommand::globalPositionGlobalCb, this);
@@ -36,7 +42,6 @@ void mavrosCommand::init(){
 
 
 void mavrosCommand::adsbVehicleCb(mavros_msgs::ADSBVehicle::ConstPtr msg) {
-	
 	_adsbICAO = msg->ICAO_address;
 	_adsbHeading = msg->heading;
 	_adsbVelocity = msg->hor_velocity;
@@ -99,12 +104,6 @@ void mavrosCommand::land(){
 	}
 	else cout << "LAND FAIL" <<endl;
 	
-}
-
-void mavrosCommand::picture(){
-	std_srvs::Empty srv_picture;
-	_clientPicture.call(srv_picture);
-	cout<<"PICTURE CAPTURED"<<endl;
 }
 
 void mavrosCommand::servo(double width){//width 1000-2000

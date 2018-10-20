@@ -67,13 +67,6 @@ void flyHome(mavrosCommand command);
 void landHome(mavrosCommand command);
 bool getCordinates(mavrosCommand command);
 
-string get_username() {
-    struct passwd *pwd = getpwuid(getuid());
-    if (pwd)
-        return pwd->pw_name;
-    else
-        return "(?)";
-}
 
 int main(int argc, char* argv[]){
 
@@ -306,10 +299,6 @@ void landHome(mavrosCommand command){
 
 bool getCordinates(mavrosCommand command){
 	string name = get_username();
-	if (name == "(?)") 
-	{
-		name = "odroid";
-	}
 	
 	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad2/mission.json");
 	json missionSettings = json::parse(theFile);
