@@ -2,6 +2,7 @@
 #include "mavrosCommand.hpp"
 
 using namespace std;
+using namespace cv;
 #define PI 3.14159265
 
 mavrosCommand::mavrosCommand(){
@@ -277,3 +278,39 @@ void mavrosCommand::initSubscribers(){
 	getCompassHeading();
 	getState();
 }
+
+
+void MyLine::calculate_a_b(MyPoint P1, MyPoint P2) {
+    a = (P2.y-P1.y)/(P2.x-P1.x);
+    b = P1.y - a * P1.x;
+}
+ 
+double MyLine::LPDist(MyPoint P) {
+ 
+    double a2 = -a;
+    double b2 = P.y - a2 * P.x;
+    double xp = (b2 - b)/(a - a2);
+    double yp = a * xp + b;
+    double dx = P.x - xp;
+    double dy = P.y - yp;
+ 
+    return sqrt(dx*dx + dy*dy);
+}
+ 
+double newRange(double x, double in_min, double in_max, double out_min, double out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+ 
+bool neighborhoodCheck( Mat z, int i, int j) {
+    bool n = false;
+    if(z.at<uchar>(i,j) < z.at<uchar>(i-1,j-1) or z.at<uchar>(i,j) < z.at<uchar>(i-1,j) or z.at<uchar>(i,j) < z.at<uchar>(i-1,j+1) or z.at<uchar>(i,j) < z.at<uchar>(i,j-1) or z.at<uchar>(i,j) < z.at<uchar>(i,j+1) or z.at<uchar>(i,j) < z.at<uchar>(i+1,j-1) or z.at<uchar>(i,j) < z.at<uchar>(i+1,j) or z.at<uchar>(i,j) < z.at<uchar>(i+1,j+1) ){
+        n = false;
+    }
+    else {
+        n = true;
+    }
+ 
+    return n;
+}
+
+

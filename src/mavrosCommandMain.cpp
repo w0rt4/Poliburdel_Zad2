@@ -15,8 +15,13 @@
 #include <stdlib.h>
 #include <pwd.h>
 
+#include <GeographicLib/UTMUPS.hpp>
+
 using namespace std;
 using namespace LibSerial;
+using namespace cv;
+using namespace GeographicLib;
+
 
 double latitude[65];
 double longitude[65];
@@ -66,12 +71,26 @@ void nextPoint(mavrosCommand command);
 void flyHome(mavrosCommand command);
 void landHome(mavrosCommand command);
 bool getCordinates(mavrosCommand command);
+void getLatLongShift(mavrosCommand command, double length, double angle, double* pointLatitude, double* pointLongitude);
 
+
+//Arek
+MyPoint P1, P2, P3;
+MyLine L01, L02;
+
+double X0;
+double Y0;
+int flights;
+int resolution_density = 2; // zadane lub do wczytania z pliku z parametrami (oznacza ile razy wiecej ma byc kwadratow w macierzy obszaru niz przelotow)
+int zoneMargin = 10;
+int TresureZoneSize;
 
 int main(int argc, char* argv[]){
 
 	ros::init(argc, argv, "treasure_hunting");
 	mavrosCommand command;
+	MyPoint P1, P2, P3;
+	MyLine L1, L2;
 	
 	ros::Rate loop_rate(frequency);
 	sleep(1);
@@ -297,10 +316,27 @@ void landHome(mavrosCommand command){
 	}
 }
 
+void getLatLongShift(mavrosCommand command, double length, double angle, double* pointLatitude, double* pointLongitude)
+{
+	double easting, northing;
+	int zone;
+ 	bool northp;
+	UTMUPS::Forward(*pointLatitude, *pointLongitude, zone, northp, easting, northing);
+	
+	double longitudeShift = length * sin(command.toRad(angle));
+	double latitudeShift = length * cos(command.toRad(angle));
+	
+	northing += longitudeShift;
+	easting += latitudeShift;
+	
+	UTMUPS::Reverse(zone, northp, easting, northing, *pointLatitude, *pointLongitude);
+}
+
 bool getCordinates(mavrosCommand command){
+	
 	string name = get_username();
 	
-	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad2/mission.json");
+	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad1/mission.json");
 	json missionSettings = json::parse(theFile);
 	theFile.close();
 	
@@ -312,6 +348,7 @@ bool getCordinates(mavrosCommand command){
  	bool northp;
  	
  	missionAltitude = missionSettings["mission"]["altitude"];
+ 	int pictureFrequency = missionSettings["mission"]["photosFrequency"];
  	
  	double leftDownLongitude = missionSettings["mission"]["leftDown"]["longitude"];
  	double leftDownLatitude = missionSettings["mission"]["leftDown"]["latitude"];
@@ -322,14 +359,16 @@ bool getCordinates(mavrosCommand command){
  	
  	int direction = directions(FromStartLine);
  	
- 	int pointsOnSingleScan = 8;
- 	int scanCount = 8;
- 	
+ 	int pointsOnSingleScan = 2;
+ 	int scanCount = ceil(command.distanceBetweenCordinates(leftDownLatitude, leftDownLongitude, rightDownLatitude, rightDownLongitude) / 19);
+ 	double distanceBetweenSingleScan = command.distanceBetweenCordinates(leftDownLatitude, leftDownLongitude, rightDownLatitude, rightDownLongitude) / scanCount;
+	
 	if(missionAltitude == 0 || leftDownLatitude == 0 || leftUpLatitude == 0 || rightDownLatitude == 0 || leftDownLongitude == 0 || leftUpLongitude == 0 || rightDownLongitude == 0)
 	{
 		return false;
 	}	 
 	
+	pictureFrequency = pictureFrequency * 20;
 	yawMapping = atan((leftUpLongitude - leftDownLongitude) * 0.67 / (leftUpLatitude - leftDownLatitude) * 1.11) * 180 / PI;
 
 	if(leftUpLongitude - leftDownLongitude >= 0 && leftUpLatitude - leftDownLatitude == 0)
@@ -384,6 +423,24 @@ bool getCordinates(mavrosCommand command){
 			x_pom = x + x_wsp_14;
 			y_pom = y + y_wsp_14;
 			
+						
+			// Zakrety test
+			getLatLongShift(command, 9.2, 70, &x, &y);
+			latitude[pointsCount] = x;
+			longitude[pointsCount] = y;
+			pointsCount++;
+			
+			getLatLongShift(command, 5.4, 54, &x, &y);
+			latitude[pointsCount] = x;
+			longitude[pointsCount] = y;
+			pointsCount++;
+			
+			getLatLongShift(command, 5, 4, &x, &y);
+			latitude[pointsCount] = x;
+			longitude[pointsCount] = y;
+			pointsCount++;
+			//
+			
 			direction = directions(ToStartLine);
 	   }
 		else if(direction == directions(ToStartLine))
@@ -405,9 +462,53 @@ bool getCordinates(mavrosCommand command){
 			
 			x_pom = x + x_wsp_14;
 			y_pom = y + y_wsp_14;
+			
+			if(jk < scanCount - 1) 
+			{
+				// Zakrety test
+				getLatLongShift(command, 9.2, 340, &x, &y);
+				latitude[pointsCount] = x;
+				longitude[pointsCount] = y;
+				pointsCount++;
+			
+				getLatLongShift(command, 5, 360, &x, &y);
+				latitude[pointsCount] = x;
+				longitude[pointsCount] = y;
+				pointsCount++;
+			
+				getLatLongShift(command, 5, 30, &x, &y);
+				latitude[pointsCount] = x;
+				longitude[pointsCount] = y;
+				pointsCount++;
+				//
+			}
+			
 			direction = directions(FromStartLine);
 	   }
 	}
+	
+	
+	// wczytanie punktów
+	
+	P1.x = leftDownLongitude;
+	P1.y = leftDownLatitude;
+	P2.x = leftUpLongitude;
+	P2.y = leftUpLatitude;
+	P3.x = rightDownLongitude;
+	P3.y = rightDownLatitude;
+	
+	// obliczenie rownan prostych
+	
+	L01.calculate_a_b(P1, P2);
+	L02.calculate_a_b(P1, P3);
+	
+	// obliczenie dlugosci y0 i x0, a wiec odleglosci miedzy prostymi ograniczajacymi obszar
+	
+	X0 = L01.LPDist(P3);
+	Y0 = L02.LPDist(P2);
+	
+	flights = scanCount; // do odczytania z programu do obliczania sciezki, powinno byc 16 co najmniej praawdopodobnie
+	TresureZoneSize = flights * resolution_density + 2 * zoneMargin; // 5 to margines
 	
 	return true;
 }

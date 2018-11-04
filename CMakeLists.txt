@@ -9,12 +9,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  cv_bridge
+
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(OpenCV)
+find_package(OpenCV 3.4.0 REQUIRED)
 
 include_directories(
 ${catkin_INCLUDE_DIRS}
@@ -35,7 +35,7 @@ LINK_DIRECTORIES("usr/local/lib")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES treasure_hunting
-   CATKIN_DEPENDS mavros mavros_msgs roscpp rospy std_msgs cv_bridge
+   CATKIN_DEPENDS mavros mavros_msgs roscpp rospy std_msgs 
 #  DEPENDS system_lib
 )
 

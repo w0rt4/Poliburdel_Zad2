@@ -19,10 +19,18 @@
 #include <iostream>
 #include <string.h>
 #include <pwd.h>
+#include <math.h>
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
+using namespace cv;
 
 string get_username();
+double newRange(double x, double in_min, double in_max, double out_min, double out_max);
+bool neighborhoodCheck( Mat z, int i, int j);
 
 class mavrosCommand {
 public:
@@ -121,6 +129,20 @@ private:
 	//timeReference
 	time_t _time;
 	
+};
+
+class MyPoint{
+	public:
+		double x;
+		double y;
+};
+
+class MyLine{
+		double a;
+		double b;
+	public:
+		void calculate_a_b(MyPoint, MyPoint);
+		double LPDist(MyPoint);
 };
 
 
