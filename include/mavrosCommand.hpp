@@ -29,8 +29,7 @@ using namespace std;
 using namespace cv;
 
 string get_username();
-double newRange(double x, double in_min, double in_max, double out_min, double out_max);
-bool neighborhoodCheck( Mat z, int i, int j);
+
 
 class mavrosCommand {
 public:
@@ -41,14 +40,14 @@ public:
 	
 	//services
 	void land();
-	void guided();
-	void arm();
+	bool guided();
+	bool arm();
 	void takeOff(double altitude);
 	void servo(double width);
 	
 	//publishers
 	void flyTo(double latitude, double longitude, double altitude);
-	void slowDown(double counterForce);
+	void flyToLocal(double forward,double right, double up, float yaw);
 	
 	//subscribers
 	double getCompassHeading();
@@ -145,5 +144,17 @@ class MyLine{
 		double LPDist(MyPoint);
 };
 
+class LocalMax{
+    public:
+        int x;
+        int y;
+        uint16_t value;
+        bool isBiggest; // jeśli ma tylko mniejszych od siebie sąsiadów == true, jesli ma też rownych sobie to == false
+ 
+        LocalMax(int x1, int y1, unsigned int value1);
+};
 
+double newRange(double x, double in_min, double in_max, double out_min, double out_max);
+bool neighborhoodCheck( Mat z, int i, int j);
+bool compareLocalMax (LocalMax i,LocalMax j);
 #endif

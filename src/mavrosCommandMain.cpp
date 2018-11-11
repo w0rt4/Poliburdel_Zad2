@@ -73,7 +73,6 @@ void landHome(mavrosCommand command);
 bool getCordinates(mavrosCommand command);
 void getLatLongShift(mavrosCommand command, double length, double angle, double* pointLatitude, double* pointLongitude);
 
-
 //Arek
 MyPoint P1, P2, P3;
 MyLine L01, L02;
@@ -83,7 +82,7 @@ double Y0;
 int flights;
 int resolution_density = 2; // zadane lub do wczytania z pliku z parametrami (oznacza ile razy wiecej ma byc kwadratow w macierzy obszaru niz przelotow)
 int zoneMargin = 10;
-int TresureZoneSize;
+int TreasureZoneSize;
 
 int main(int argc, char* argv[]){
 
@@ -100,8 +99,9 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 	
-
 	i=0;
+	
+	Mat TreasureZone = Mat( TreasureZoneSize, TreasureZoneSize, CV_16U);
 	
 	char readedChar;
 	int fileDescriptor;
@@ -109,7 +109,6 @@ int main(int argc, char* argv[]){
     string readData;
 	SerialPort serial_port("/dev/ttyUSB0");
 
-	
 	try
 	{
 		serial_port.Open(SerialPort::BaudRate::BAUD_115200,
@@ -155,7 +154,7 @@ int main(int argc, char* argv[]){
     cout<<"Serial Port Open."<<endl;
 	while (ros::ok()) 
 	{		
-		while(serial_port.IsDataAvailable()) 
+		while(serial_port.IsDataAvailable() && i > 2 && i < pointsCount + 1) 
 		{
 			try
 			{
@@ -163,12 +162,44 @@ int main(int argc, char* argv[]){
 				cout<<readData<<endl;
 				
 				int value = stoi(readData);
+				int metalValue = value;
 				if(value < 50)
 				{
 					serial_port.WriteByte('a');
 					this_thread::sleep_for (chrono::seconds(1));
 				}
 				
+				Mat gradFrame = (Mat_<uint16_t>(5,5) <<
+					0, 1, 2, 1, 0,
+					1, 3, 4, 3, 1,
+					1, 4, 9, 4, 1,
+					1, 3, 4, 3, 1,
+					0, 1, 1, 1, 0);
+				
+				MyPoint Pn;
+				Pn.x = command.getGlobalPositionLongitude();
+				Pn.y = command.getGlobalPositionLatitude();
+				
+				double distx = L01.LPDist(Pn);
+				double disty = L02.LPDist(Pn);
+				
+				double proportionx = distx / X0;
+				double proportiony = disty / Y0;
+				
+				double Xsquare = newRange(proportionx, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
+				double Ysquare = newRange(proportiony, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
+				
+				int intXsquare = Xsquare + 1;
+				int intYsquare = Ysquare + 1;
+				
+				if(intXsquare > 3 and intYsquare > 3 and intXsquare < TreasureZone.cols-3 and intYsquare < TreasureZone.cols-3 )
+				{
+					Mat gradFrameWeight = gradFrame * metalValue;
+					Rect Rec(intXsquare - 2, intYsquare - 2, 5, 5); // (x begin, y begin, width, height)
+					Mat Roi = Mat(TreasureZone, Rec);
+					gradFrameWeight = gradFrameWeight + Roi;
+					gradFrameWeight.copyTo(TreasureZone(Rec));
+				}		
 			}
 			catch(...)
 			{
@@ -177,7 +208,7 @@ int main(int argc, char* argv[]){
 		}
 		
 		if(loopCounter >= 10){
-			mission(command);
+			//mission(command);
 			loopCounter = 0;
 		}		
 		
@@ -186,6 +217,54 @@ int main(int argc, char* argv[]){
 		ros::spinOnce();
 		loop_rate.sleep();
 	}	
+	
+	Mat TreasureZoneBig;
+	Mat TreasureZoneBigRed;
+	TreasureZoneBigRed.create(TreasureZoneBig.size(), CV_8UC3);
+	resize(TreasureZone, TreasureZoneBig, cv::Size(), 5, 5);
+	cvtColor(TreasureZoneBig, TreasureZoneBigRed, cv::COLOR_GRAY2BGR);
+	
+	vector<LocalMax> localMaxVect;
+ 
+	for (int i = 1; i < TreasureZone.cols-1; i++){
+		for (int j = 1; j < TreasureZone.rows-1; j++){
+			if ( neighborhoodCheck(TreasureZone, i, j) == true ) { // nie ma większych sąsiadów / jest najwiekszy lub rowny
+				LocalMax Max(i, j, TreasureZone.at<uint16_t>(j, i));
+				localMaxVect.push_back(Max);
+				//circle( TreasureZoneBigRed, cv::Point(i*5+2, j*5+2), 4,  Scalar(0,0,65000), 1, LINE_8, 0 );
+			}
+		}
+	}
+	
+	cout << "Liczba wykrytych lokalnych max : " << int(localMaxVect.size()) << endl << endl;
+	
+	sort (localMaxVect.begin(), localMaxVect.end(), compareLocalMax);
+	
+	for (uint i=0; i < localMaxVect.size(); i++){
+		cout << int(i) << "   x= " << localMaxVect.at(i).x << "   y= " << localMaxVect.at(i).y << "   v= " << localMaxVect.at(i).value << endl;
+		if (i == 3) cout << "----------------------------------" << endl;
+	}
+	
+	rectangle( TreasureZoneBigRed, Point(5*zoneMargin+2,5*zoneMargin+2),
+			Point( TreasureZoneBigRed.rows - (5*zoneMargin+2), TreasureZoneBigRed.cols - (5*zoneMargin+2)),
+			Scalar(0,65000,0), 1, 8 );
+			
+	for (int i = 0; i <= 3; i++)
+	{
+		int x = localMaxVect.at(i).x;
+		int y = localMaxVect.at(i).y;
+		Point PLM(x*5+2, y*5+2);
+		circle( TreasureZoneBigRed, PLM, 4,  Scalar(0,0,65000), 1, LINE_8, 0 );
+		if (i == localMaxVect.size() - 1) break;
+	}
+	
+	string name = get_username();
+	string savingName = "/home/" + name + "/treasure_hunt/TreasureZone.jpg";
+	imwrite(savingName, TreasureZone);
+	savingName = "/home/" + name + "/treasure_hunt/TreasureZoneBig.jpg";
+	imwrite(savingName, TreasureZoneBig);
+	savingName = "/home/" + name + "/treasure_hunt/TreasureZoneBigRed.jpg";
+	imwrite(savingName, TreasureZoneBigRed);
 	
 	try
 	{
@@ -508,7 +587,7 @@ bool getCordinates(mavrosCommand command){
 	Y0 = L02.LPDist(P2);
 	
 	flights = scanCount; // do odczytania z programu do obliczania sciezki, powinno byc 16 co najmniej praawdopodobnie
-	TresureZoneSize = flights * resolution_density + 2 * zoneMargin; // 5 to margines
+	TreasureZoneSize = flights * resolution_density + 2 * zoneMargin; // 5 to margines
 	
 	return true;
 }
