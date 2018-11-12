@@ -53,7 +53,6 @@ double homeAltitude;
 bool precisionLanding = false;
 double dronAltitude;
 
-
 //Czestotliwosc do ustawienia w Hz
 int frequency = 20;
 //////////////////////////
@@ -61,7 +60,7 @@ int loopCounter;
 int loopCounter1;
 
 int checkpointsQuantity = 11;
-double cordinatesPrecision = 0.00002;//0.000005;
+double cordinatesPrecision = 0.000005;//0.00002
 //////////////////
 
 void mission(mavrosCommand command);
@@ -81,13 +80,14 @@ double X0;
 double Y0;
 int flights;
 int resolution_density = 2; // zadane lub do wczytania z pliku z parametrami (oznacza ile razy wiecej ma byc kwadratow w macierzy obszaru niz przelotow)
-int zoneMargin = 10;
+int zoneMargin = 5;
 int TreasureZoneSize;
 
 int main(int argc, char* argv[]){
 
 	ros::init(argc, argv, "treasure_hunting");
 	mavrosCommand command;
+	
 	MyPoint P1, P2, P3;
 	MyLine L1, L2;
 	
@@ -101,8 +101,7 @@ int main(int argc, char* argv[]){
 	
 	i=0;
 	
-	Mat TreasureZone = Mat( TreasureZoneSize, TreasureZoneSize, CV_16U);
-	
+	Mat TreasureZone = Mat::zeros( TreasureZoneSize, TreasureZoneSize, CV_16U);
 	char readedChar;
 	int fileDescriptor;
 	size_t ms_timeout = 5000;
@@ -139,7 +138,7 @@ int main(int argc, char* argv[]){
 	}
 	
 	cout<<"Sending initial command to metal detector." <<endl;				 
-    serial_port.WriteByte('e');
+    serial_port.WriteByte('e'); //potrzebne, nie usuwać bo pierwsza komenda inicjalizuje komunikację
     
     // kalibracja wykrywacza
     this_thread::sleep_for (chrono::seconds(10));
@@ -152,7 +151,7 @@ int main(int argc, char* argv[]){
     serial_port.WriteByte('e');
     
     cout<<"Serial Port Open."<<endl;
-	while (ros::ok()) 
+	while (ros::ok() && currentState != END) 
 	{		
 		while(serial_port.IsDataAvailable() && i > 2 && i < pointsCount + 1) 
 		{
@@ -167,38 +166,42 @@ int main(int argc, char* argv[]){
 				{
 					serial_port.WriteByte('a');
 					this_thread::sleep_for (chrono::seconds(1));
-				}
-				
-				Mat gradFrame = (Mat_<uint16_t>(5,5) <<
-					0, 1, 2, 1, 0,
-					1, 3, 4, 3, 1,
-					1, 4, 9, 4, 1,
-					1, 3, 4, 3, 1,
-					0, 1, 1, 1, 0);
-				
-				MyPoint Pn;
-				Pn.x = command.getGlobalPositionLongitude();
-				Pn.y = command.getGlobalPositionLatitude();
-				
-				double distx = L01.LPDist(Pn);
-				double disty = L02.LPDist(Pn);
-				
-				double proportionx = distx / X0;
-				double proportiony = disty / Y0;
-				
-				double Xsquare = newRange(proportionx, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
-				double Ysquare = newRange(proportiony, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
-				
-				int intXsquare = Xsquare + 1;
-				int intYsquare = Ysquare + 1;
-				
-				if(intXsquare > 3 and intYsquare > 3 and intXsquare < TreasureZone.cols-3 and intYsquare < TreasureZone.cols-3 )
+				}else
 				{
-					Mat gradFrameWeight = gradFrame * metalValue;
-					Rect Rec(intXsquare - 2, intYsquare - 2, 5, 5); // (x begin, y begin, width, height)
-					Mat Roi = Mat(TreasureZone, Rec);
-					gradFrameWeight = gradFrameWeight + Roi;
-					gradFrameWeight.copyTo(TreasureZone(Rec));
+					Mat gradFrame = (Mat_<uint16_t>(5,5) <<
+						0, 1, 2, 1, 0,
+						1, 3, 4, 3, 1,
+						1, 4, 9, 4, 1,
+						1, 3, 4, 3, 1,
+						0, 1, 1, 1, 0);
+					
+					MyPoint Pn;
+					Pn.x = command.getGlobalPositionLongitude();
+					Pn.y = command.getGlobalPositionLatitude();
+					
+					double distx = L01.LPDist(Pn);
+					double disty = L02.LPDist(Pn);
+					
+					double proportionx = distx / X0;
+					double proportiony = disty / Y0;
+					
+					double Xsquare = newRange(proportionx, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
+					double Ysquare = newRange(proportiony, 0, 1, zoneMargin, flights * resolution_density + zoneMargin);
+					
+					int intXsquare = Xsquare + 1;
+					int intYsquare = Ysquare + 1;
+					
+					if(intXsquare > 3 and intYsquare > 3 and intXsquare < TreasureZone.cols-3 and intYsquare < TreasureZone.cols-3 )
+					{
+						Mat gradFrameWeight = gradFrame * metalValue/10;
+						Rect Rec(intXsquare - 2, intYsquare - 2, 5, 5); // (x begin, y begin, width, height)
+						Mat Roi = Mat(TreasureZone, Rec);
+						gradFrameWeight = gradFrameWeight + Roi;
+						gradFrameWeight.copyTo(TreasureZone(Rec));
+					}
+					cout << intXsquare << endl << Ysquare << endl;
+					imshow("TresureZone", TreasureZone);
+					waitKey(3);
 				}		
 			}
 			catch(...)
@@ -208,10 +211,10 @@ int main(int argc, char* argv[]){
 		}
 		
 		if(loopCounter >= 10){
-			//mission(command);
+			mission(command);
 			loopCounter = 0;
 		}		
-		
+
 		loopCounter++;
 		//loopCounter1++;
 		ros::spinOnce();
@@ -278,6 +281,7 @@ int main(int argc, char* argv[]){
 	}
 	
 	serial_port.Close();
+	cout<<"END OF MISSION"<<endl;
 	return 0;
 }
 
@@ -300,8 +304,7 @@ void mission(mavrosCommand command){
 			landHome(command);
 		break;
 		case END:
-			cout<<"END OF MISSION"<<endl;
-			exit(0);
+			
 		break;
 		default:
 
@@ -415,7 +418,7 @@ bool getCordinates(mavrosCommand command){
 	
 	string name = get_username();
 	
-	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad1/mission.json");
+	ifstream theFile("/home/" + name + "/catkin_ws/src/Poliburdel_Zad2/mission.json");
 	json missionSettings = json::parse(theFile);
 	theFile.close();
 	
@@ -427,8 +430,6 @@ bool getCordinates(mavrosCommand command){
  	bool northp;
  	
  	missionAltitude = missionSettings["mission"]["altitude"];
- 	int pictureFrequency = missionSettings["mission"]["photosFrequency"];
- 	
  	double leftDownLongitude = missionSettings["mission"]["leftDown"]["longitude"];
  	double leftDownLatitude = missionSettings["mission"]["leftDown"]["latitude"];
  	double leftUpLongitude = missionSettings["mission"]["leftUp"]["longitude"];
@@ -438,16 +439,14 @@ bool getCordinates(mavrosCommand command){
  	
  	int direction = directions(FromStartLine);
  	
- 	int pointsOnSingleScan = 2;
- 	int scanCount = ceil(command.distanceBetweenCordinates(leftDownLatitude, leftDownLongitude, rightDownLatitude, rightDownLongitude) / 19);
- 	double distanceBetweenSingleScan = command.distanceBetweenCordinates(leftDownLatitude, leftDownLongitude, rightDownLatitude, rightDownLongitude) / scanCount;
-	
+ 	int pointsOnSingleScan = 8;
+ 	int scanCount = 8;
+ 		
 	if(missionAltitude == 0 || leftDownLatitude == 0 || leftUpLatitude == 0 || rightDownLatitude == 0 || leftDownLongitude == 0 || leftUpLongitude == 0 || rightDownLongitude == 0)
 	{
 		return false;
 	}	 
 	
-	pictureFrequency = pictureFrequency * 20;
 	yawMapping = atan((leftUpLongitude - leftDownLongitude) * 0.67 / (leftUpLatitude - leftDownLatitude) * 1.11) * 180 / PI;
 
 	if(leftUpLongitude - leftDownLongitude >= 0 && leftUpLatitude - leftDownLatitude == 0)
@@ -501,25 +500,7 @@ bool getCordinates(mavrosCommand command){
 			
 			x_pom = x + x_wsp_14;
 			y_pom = y + y_wsp_14;
-			
 						
-			// Zakrety test
-			getLatLongShift(command, 9.2, 70, &x, &y);
-			latitude[pointsCount] = x;
-			longitude[pointsCount] = y;
-			pointsCount++;
-			
-			getLatLongShift(command, 5.4, 54, &x, &y);
-			latitude[pointsCount] = x;
-			longitude[pointsCount] = y;
-			pointsCount++;
-			
-			getLatLongShift(command, 5, 4, &x, &y);
-			latitude[pointsCount] = x;
-			longitude[pointsCount] = y;
-			pointsCount++;
-			//
-			
 			direction = directions(ToStartLine);
 	   }
 		else if(direction == directions(ToStartLine))
@@ -541,31 +522,10 @@ bool getCordinates(mavrosCommand command){
 			
 			x_pom = x + x_wsp_14;
 			y_pom = y + y_wsp_14;
-			
-			if(jk < scanCount - 1) 
-			{
-				// Zakrety test
-				getLatLongShift(command, 9.2, 340, &x, &y);
-				latitude[pointsCount] = x;
-				longitude[pointsCount] = y;
-				pointsCount++;
-			
-				getLatLongShift(command, 5, 360, &x, &y);
-				latitude[pointsCount] = x;
-				longitude[pointsCount] = y;
-				pointsCount++;
-			
-				getLatLongShift(command, 5, 30, &x, &y);
-				latitude[pointsCount] = x;
-				longitude[pointsCount] = y;
-				pointsCount++;
-				//
-			}
-			
+						
 			direction = directions(FromStartLine);
 	   }
 	}
-	
 	
 	// wczytanie punktów
 	
