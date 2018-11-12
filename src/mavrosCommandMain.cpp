@@ -88,10 +88,10 @@ int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "treasure_hunting");
 	mavrosCommand command;
 
-	count << "SERVO OPENED" << endl;
+	cout << "SERVO OPENED" << endl;
 	while (!command.servo(1100));
 	sleep(10);
-	count << "SERVO CLOSED" << endl;
+	cout << "SERVO CLOSED" << endl;
 	while (!command.servo(1900));
 
 	MyPoint P1, P2, P3;
@@ -380,7 +380,7 @@ void nextPoint(mavrosCommand command) {
 			sleep(10);
 
 			bool isSetSpeedCorrect = false;
-			for (int speedSetCount = 0; speedSetCountt < 3; speedSetCount++)
+			for (int speedSetCount = 0; speedSetCount < 3; speedSetCount++)
 			{
 				isSetSpeedCorrect = command.speedSet(20);
 				if (isSetSpeedCorrect)
@@ -402,7 +402,7 @@ void nextPoint(mavrosCommand command) {
 		if (i >= pointsCount + 1)
 		{ 
 			//IS IN HOME POSITION?
-			count << "SERVO OPENED" << endl;
+			cout << "SERVO OPENED" << endl;
 			while (!command.servo(1900));
 			currentState = LAND_HOME;
 			dronAltitude = 5;

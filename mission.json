@@ -2,16 +2,16 @@
 	"mission": {
 		"altitude": 2,
 		"leftDown": {
-			"latitude": 53.117720,
-			"longitude": 23.147192
+			"latitude": 53.117953,
+			"longitude": 23.147773
 		},
 		"leftUp": {
-			"latitude": 53.117798,
-			"longitude": 23.147149
+			"latitude": 53.117996,
+			"longitude": 23.147718
 		},
 		"rightDown": {
-			"latitude": 53.117763,
-			"longitude": 23.147311
+			"latitude": 53.117959,
+			"longitude": 23.147905
 		}
 	}
 }

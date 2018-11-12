@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(OpenCV 3.4.0 REQUIRED)
+find_package(OpenCV 3.3.0 REQUIRED)
 
 include_directories(
 ${catkin_INCLUDE_DIRS}
