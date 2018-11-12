@@ -45,7 +45,7 @@ public:
 	bool arm();
 	bool speedSet(int speed);
 	void takeOff(double altitude);
-	void servo(double width);
+	bool servo(double width);
 	
 	//publishers
 	void flyTo(double latitude, double longitude, double altitude);

@@ -88,6 +88,12 @@ int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "treasure_hunting");
 	mavrosCommand command;
 
+	count << "SERVO OPENED" << endl;
+	while (!command.servo(1100));
+	sleep(10);
+	count << "SERVO CLOSED" << endl;
+	while (!command.servo(1900));
+
 	MyPoint P1, P2, P3;
 	MyLine L1, L2;
 
@@ -98,6 +104,8 @@ int main(int argc, char* argv[]) {
 		cout << "Mission file is damaged." << endl;
 		return 0;
 	}
+
+	command.speedSet(500);
 
 	i = 0;
 
@@ -370,9 +378,32 @@ void nextPoint(mavrosCommand command) {
 		{
 			cout << "STABILIZATION TIME" << endl;
 			sleep(10);
+
+			bool isSetSpeedCorrect = false;
+			for (int speedSetCount = 0; speedSetCountt < 3; speedSetCount++)
+			{
+				isSetSpeedCorrect = command.speedSet(20);
+				if (isSetSpeedCorrect)
+				{
+					break;
+				}
+			}
+
+			if (!isSetSpeedCorrect)
+			{
+				while (!command.servo(1900));
+				currentState = LAND_HOME;
+				dronAltitude = 5;
+				command.flyTo(homeLatitude, homeLongitude, dronAltitude);
+				return;
+			}
 		}
 
-		if (i >= pointsCount + 1) { //IS IN HOME POSITION?
+		if (i >= pointsCount + 1)
+		{ 
+			//IS IN HOME POSITION?
+			count << "SERVO OPENED" << endl;
+			while (!command.servo(1900));
 			currentState = LAND_HOME;
 			dronAltitude = 5;
 			command.flyTo(homeLatitude, homeLongitude, dronAltitude);
