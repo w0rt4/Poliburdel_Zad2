@@ -11,6 +11,7 @@
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/ADSBVehicle.h"
 #include "mavros_msgs/State.h"
+#include "mavros_msgs/ParamSet.h"
 #include "sensor_msgs/TimeReference.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Float64.h"
@@ -42,6 +43,7 @@ public:
 	void land();
 	bool guided();
 	bool arm();
+	bool speedSet(int speed);
 	void takeOff(double altitude);
 	void servo(double width);
 	
@@ -85,6 +87,7 @@ private:
 	ros::ServiceClient _clientGuided;
 	ros::ServiceClient _clientLand;
 	ros::ServiceClient _clientServo;
+	ros::ServiceClient _clientParamSet;
 	
 	ros::Publisher _pub_mav;
 	ros::Publisher _pub_mavPositionTarget;
