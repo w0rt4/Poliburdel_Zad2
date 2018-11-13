@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	command.speedSet(500);
+	command.speedSet(500.0);
 
 	i = 0;
 
@@ -382,7 +382,7 @@ void nextPoint(mavrosCommand command) {
 			bool isSetSpeedCorrect = false;
 			for (int speedSetCount = 0; speedSetCount < 3; speedSetCount++)
 			{
-				isSetSpeedCorrect = command.speedSet(20);
+				isSetSpeedCorrect = command.speedSet(20.0);
 				if (isSetSpeedCorrect)
 				{
 					break;

@@ -23,7 +23,7 @@ mavrosCommand::~mavrosCommand() {
 }
 
 void mavrosCommand::init() {
-	_client = _nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
+	_clientArming = _nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
 	_clientTakeOff = _nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
 	_clientGuided = _nh.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
 	_clientLand = _nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
@@ -147,7 +147,7 @@ bool mavrosCommand::arm()
 	for (int i = 0; i < 3; i++)
 	{
 		srv.request.value = true;
-		_client.call(srv);
+		_clientArming.call(srv);
 
 		if (srv.response.success)
 		{
@@ -198,14 +198,14 @@ void mavrosCommand::flyToLocal(double forward, double right, double up, float ya
 	_pub_mavPositionTarget.publish(cmd_pos_target);
 }
 
-bool mavrosCommand::speedSet(int speed)
+bool mavrosCommand::speedSet(float speed)
 {
-	if (speed < 20)
+	if (speed < 20.0)
 	{
 		cout << "SPEED TOO LOW" << endl;
 		return false;
 	}
-	else if (speed > 20000)
+	else if (speed > 20000.0)
 	{
 		cout << "SPEED TOO HIGH" << endl;
 		return false;
@@ -213,19 +213,19 @@ bool mavrosCommand::speedSet(int speed)
 
 	mavros_msgs::ParamSet srv_setSpeed;
 	srv_setSpeed.request.param_id = "WPNAV_SPEED";
-	srv_setSpeed.request.value.integer = speed;
+	//srv_setSpeed.request.value.integer = speed;
+	srv_setSpeed.request.value.real = speed;
 
-	_client.call(srv_setSpeed);
+	_clientParamSet.call(srv_setSpeed);
+	
 	if (srv_setSpeed.response.success)
 	{
 		cout << "SET SPEED SUCCESFUL" << endl;
 		return true;
 	}
-	else
-	{
-		cout << "SET SPEED FAIL" << endl;
-		return false;
-	}
+
+	cout << "SET SPEED FAIL" << endl;
+	return false;
 }
 
 double mavrosCommand::getCompassHeading() {

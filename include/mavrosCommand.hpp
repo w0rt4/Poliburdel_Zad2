@@ -43,7 +43,7 @@ public:
 	void land();
 	bool guided();
 	bool arm();
-	bool speedSet(int speed);
+	bool speedSet(float speed);
 	void takeOff(double altitude);
 	bool servo(double width);
 	
@@ -82,7 +82,7 @@ private:
 	
 	ros::NodeHandle _nh;
 	
-	ros::ServiceClient _client;
+	ros::ServiceClient _clientArming;
 	ros::ServiceClient _clientTakeOff;
 	ros::ServiceClient _clientGuided;
 	ros::ServiceClient _clientLand;
