@@ -63,8 +63,8 @@ int checkpointsQuantity = 11;
 double cordinatesPrecision = 0.000005;//0.00002
 //////////////////
 
-void mission(mavrosCommand command);
-void waitForStart(mavrosCommand command);
+bool mission(mavrosCommand command);
+bool waitForStart(mavrosCommand command);
 void takeOffHome(mavrosCommand command);
 void nextPoint(mavrosCommand command);
 void flyHome(mavrosCommand command);
@@ -89,10 +89,10 @@ int main(int argc, char* argv[]) {
 	mavrosCommand command;
 
 	cout << "SERVO OPENED" << endl;
-	while (!command.servo(1100));
+	while (!command.servo(1900));
 	sleep(10);
 	cout << "SERVO CLOSED" << endl;
-	while (!command.servo(1900));
+	while (!command.servo(1100));
 
 	MyPoint P1, P2, P3;
 	MyLine L1, L2;
@@ -220,7 +220,22 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (loopCounter >= 10) {
-			mission(command);
+			if(!mission(command))
+			{
+				try
+				{
+					cout << "Turning off metal detector." << endl;
+					serial_port.WriteByte('f');
+				}
+				catch (...)
+				{
+					cout << "Error when trying to turn off metal detector." << endl;
+				}
+
+				serial_port.Close();
+				cout << "END OF MISSION" << endl;
+				return -1;
+			}
 			loopCounter = 0;
 		}
 
@@ -294,11 +309,15 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void mission(mavrosCommand command) {
+bool mission(mavrosCommand command) {
 	switch (currentState) {
 	case WAIT_FOR_START:
-		if (isInit == true)waitForStart(command);
-		else {
+		if (isInit == true)
+		{
+			return waitForStart(command);
+		}
+		else
+		{
 			command.initSubscribers();
 			isInit = true;
 		}
@@ -319,9 +338,11 @@ void mission(mavrosCommand command) {
 
 		break;
 	}
+	
+	return true;
 }
 
-void waitForStart(mavrosCommand command) {
+bool waitForStart(mavrosCommand command) {
 
 	homeLatitude = command.getGlobalPositionLatitude();
 	homeLongitude = command.getGlobalPositionLongitude();
@@ -331,10 +352,16 @@ void waitForStart(mavrosCommand command) {
 	longitude[pointsCount] = homeLongitude;
 
 	dronAltitude = missionAltitude;
-	command.guided();
+	if(!command.guided())
+	{
+		return false;
+	}
 	sleep(1);
 
-	command.arm();
+	if(!command.arm())
+	{
+		return false;
+	}
 	sleep(1);
 
 	command.takeOff(missionAltitude);
@@ -342,6 +369,7 @@ void waitForStart(mavrosCommand command) {
 	sleep(3);
 	command.flyTo(command.getGlobalPositionLatitude(), command.getGlobalPositionLongitude(), missionAltitude);
 
+	return true;
 }
 
 void takeOffHome(mavrosCommand command) {
